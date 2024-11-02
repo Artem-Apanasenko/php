@@ -1,0 +1,29 @@
+FROM php:8.1-apache
+
+# Встановлення необхідних PHP розширень
+RUN docker-php-ext-install pdo pdo_mysql
+
+# Увімкнення mod_rewrite для Apache
+RUN a2enmod rewrite
+
+# Налаштування локалі для підтримки UTF-8
+RUN apt-get update && apt-get install -y locales && \
+    localedef -i uk_UA -c -f UTF-8 -A /usr/share/locale/locale.alias uk_UA.UTF-8
+ENV LANG uk_UA.utf8
+
+# Налаштування Apache DocumentRoot
+ENV APACHE_DOCUMENT_ROOT /var/www/html
+RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
+RUN sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
+
+# Додавання конфігурації Apache для UTF-8
+RUN echo "AddDefaultCharset UTF-8" >> /etc/apache2/conf-available/charset.conf
+RUN a2enconf charset
+
+# Налаштування PHP
+RUN echo "error_reporting = E_ALL" >> /usr/local/etc/php/conf.d/docker-php-ext-error-reporting.ini
+RUN echo "display_errors = On" >> /usr/local/etc/php/conf.d/docker-php-ext-error-reporting.ini
+RUN echo "default_charset = UTF-8" >> /usr/local/etc/php/conf.d/charset.ini
+
+# Встановлення прав доступу
+RUN chown -R www-data:www-data /var/www/html
